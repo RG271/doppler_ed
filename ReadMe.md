@@ -1,8 +1,9 @@
 # Doppler Effect Simulation
 
-by Dr. Richard D. Kaminsky &nbsp; 3/26/2025
+This is a Qt6 project to display an animation of the Doppler effect.
 
-!!!UNFINISHED
+ToDo:
+* Finish adding the sound effect
 
 <br/>
 <br/>
