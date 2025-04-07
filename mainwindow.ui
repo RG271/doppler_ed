@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>889</width>
-    <height>485</height>
+    <width>702</width>
+    <height>460</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -82,8 +82,13 @@
           </property>
           <item>
            <widget class="QLabel" name="descLbl">
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;Press a button to hear the &lt;/span&gt;&lt;span style=&quot; font-weight:700; font-style:italic;&quot;&gt;Doppler effect&lt;/span&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;. &lt;/span&gt;This effect is used in radar to estimate a target's speed and is important in the design of space-based lasercom systems. The Doppler effect is that a wave's frequency will change if the transmitter and receiver are moving towards or away from each other. This is because once a wave is created it will propagate at a constant speed (assuming the medium in which it's propagating is &lt;span style=&quot; font-style:italic;&quot;&gt;isotropic&lt;/span&gt; [the same in all directions] and &lt;span style=&quot; font-style:italic;&quot;&gt;linear&lt;/span&gt;).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;Press a button to hear the &lt;/span&gt;&lt;span style=&quot; font-weight:700; font-style:italic;&quot;&gt;Doppler effect.&lt;/span&gt; The Doppler effect is that a wave's frequency increases (or decreases) as the transmitter and receiver move towards (or away) from each other. The reason is that after a wave is created it will propagate at a constant speed.&lt;br/&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;Applications: &lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Acoustic waves &lt;/span&gt;(sound) and &lt;span style=&quot; font-style:italic;&quot;&gt;electromagnetic waves &lt;/span&gt;(microwaves and light) exhibit the Doppler effect. Radar uses the Doppler effect to estimate targets' speed. When designing space-based lasercom systems, this effect is an important consideration.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
@@ -223,7 +228,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>889</width>
+     <width>702</width>
      <height>18</height>
     </rect>
    </property>

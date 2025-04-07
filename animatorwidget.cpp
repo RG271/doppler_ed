@@ -11,7 +11,7 @@ void AnimatorWidget::paintEvent(QPaintEvent *event) {
     int dt = int(t - m_t);
     m_t = t;
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
-    m_animator->paint(&painter, width(), height(), dt);
+    m_animator->paint(&painter, width(), height(), dt, m_synth);
 }
 
 
@@ -21,7 +21,7 @@ AnimatorWidget::AnimatorWidget(QWidget *parent, Animator *animator) : QWidget(pa
     m_t = QDateTime::currentMSecsSinceEpoch();
     setFixedSize(1800, 800);
     setAutoFillBackground(false);
-    m_synth->start();   // !!!TEST
+    m_synth->start();
 }
 
 
@@ -41,6 +41,5 @@ void AnimatorWidget::setState(int state) {
 
 // Animate
 void AnimatorWidget::animate() {
-    update();
-    m_synth->generate();
+    update();   // Schedule repainting the scene. The scene will depend on the time at which it is painted.
 }

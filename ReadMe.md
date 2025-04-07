@@ -1,56 +1,21 @@
 # Doppler Effect Simulation
 
-This is a Qt6 project to display an animation of the Doppler effect.
-
-ToDo:
-* Finish adding the sound effect
+by Dr. Richard D. Kaminsky &nbsp; 3/26/2025 &ndash; 4/7/2025
 
 <br/>
-<br/>
-<br/>
 
-## Second Level Heading
+## Overview
 
-Paragraph.
+This is an animation of an ambulance driving past a person with
+its siren on.  The siren is synthesized with a frequency that
+varies according to the Doppler effect.
 
-- bullet
-+ other bullet
-* another bullet
-    * child bullet
+## How to Deploy
 
-1. ordered
-2. next ordered
+1. Create an empty directory
+2. Copy the application executable and img subdirectory to that directory
+3. In a command window, change to the directory
+4. Run <b>C:\Qt\6.8.3\mingw_64\bin\windeployqt <i>&lt;app&gt;</i>.exe</b>
 
-### Third Level Heading
-
-Some *italic* and **bold** text and `inline code`.
-
-An empty line starts a new paragraph.
-
-Use two spaces at the end  
-to force a line break.
-
-A horizontal ruler follows:
-
----
-
-Add links inline like [this link to the Qt homepage](https://www.qt.io),
-or with a reference like [this other link to the Qt homepage][1].
-
-    Add code blocks with
-    four spaces at the front.
-
-> A blockquote
-> starts with >
->
-> and has the same paragraph rules as normal text.
-
-First Level Heading in Alternate Style
-======================================
-
-Paragraph.
-
-Second Level Heading in Alternate Style
----------------------------------------
-
-Paragraph.
+This will add the necessary dynamic link libraries and other
+files to the directory to allow running the application.

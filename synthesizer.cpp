@@ -7,29 +7,24 @@
 
 // Constructor
 Synthesizer::Synthesizer() {
-    m_audio = nullptr;
-
     // Create audio buffer
     m_buffer = new float[BUFFER_FRAMES][2];
     memset(m_buffer, 0, sizeof(float) * BUFFER_FRAMES * 2);
 
-    // Create audio loop of a FREQ Hz sine wave, optionally with +/-1% vibrato at 1 Hz
-    constexpr double FREQ = 1000.0;   // nominal frequency (Hz)
-    constexpr bool VIBRATO = false;   // vibrato enable
-    m_loop = new float[LOOP_LENGTH];
-    for (int i = 0; i < LOOP_LENGTH; i++)
-        m_loop[i] = VIBRATO ? cos((2 * M_PI * FREQ / 48000) * (1 + 0.01 * cos(2 * M_PI / 48000 * i)) * i)
-                            : cos((2 * M_PI * FREQ / 48000) * i);
-    m_loopIndex = 0.0f;
-    m_loopIndexInc = 1.0f;
-    m_volume = 0.1f;
+    // Create sine table
+    m_sine = new float[SINE_LENGTH];
+    for (int i = 0; i < SINE_LENGTH; i++)
+        m_sine[i] = sin((2 * M_PI / SINE_LENGTH) * i);
+
+    m_audio = nullptr;
+    m_sineIndex = 0.0f;
 }
 
 
 // Destructor
 Synthesizer::~Synthesizer() {
     stop();
-    delete[] m_loop;
+    delete[] m_sine;
     delete[] m_buffer;
 }
 
@@ -55,24 +50,33 @@ void Synthesizer::start() {
     m_io = m_audio->start();
     if (m_io == nullptr)  qDebug() << "ERROR in Synthesizer::start() : m_audio->start() Failed";
     else if (m_audio->state() == QAudio::StoppedState)  qDebug() << "ERROR in Synthesizer::start() : Audio stopped";
+//  qDebug() << "DEBUG Info: m_audio->bytesFree() =" << int(m_audio->bytesFree());
 }
 
 
 // Generate audio
-// If stopped, do nothing; otherwise, generate up to BUFFER_FRAMES of audio frames,
-// and enqueue them to play.  This method should be called more often than every
-// 0.5 seconds (on Windows 10 the audio device's queue size appears to be 24000
-// stereo float frames -- equal to 0.5 seconds of audio at 48000 samples per second).
-void Synthesizer::generate() {
-    if (isStopped())  return;
-    const int bytes = int(m_audio->bytesFree());
+// If stopped, does nothing; otherwise, generates up to dt milliseconds of audio.  The audio frames
+// are enqueued to the audio output device's FIFO.  This method should be called frequently enough
+// to avoid a FIFO underrun.  Note, on Windows 10 the audio device's queue size appears to be 24000
+// stereo float frames -- equal to 0.5 seconds of audio at 48000 samples per second.
+// in: volume = audio volume, which will be saturated into the range [VOL_MIN, VOL_MAX]
+//     warp = frequency warping factor, which will be saturated into the range [WARP_MIN, WARP_MAX]
+//     dt = desired duration in milliseconds for which to generate and enqueue audio output (>0)
+void Synthesizer::generate(float volume, float warp, int dt) {
+    if (isStopped() || dt <= 0)  return;
+    if (volume < VOL_MIN)  volume = VOL_MIN;
+    if (volume > VOL_MAX)  volume = VOL_MAX;
+    if (warp < WARP_MIN)  warp = WARP_MIN;
+    if (warp > WARP_MAX)  warp = WARP_MAX;
+    const int nMax = (FRAME_RATE / 1000) * dt,    // max. number of frames to generate
+              bytes = int(m_audio->bytesFree());
     if (bytes & 7)  qDebug() << "ERROR: m_audio->bytesFree() not a multiple of 8";
-    const int n = std::min(bytes >> 3, BUFFER_FRAMES);
+    const int n = std::min( std::min(bytes >> 3, BUFFER_FRAMES), nMax );   // number of frames to generate
+    const float sineIndexInc = SINE_LENGTH * FREQ * (1.0f / FRAME_RATE) * warp;
     for (int i = 0; i < n; i++) {
-        int j = int(m_loopIndex);
-        m_loopIndex += m_loopIndexInc;
-        if (m_loopIndex >= LOOP_LENGTH)  m_loopIndex -= LOOP_LENGTH;
-        m_buffer[i][0] = m_buffer[i][1] = m_volume * m_loop[j];
+        m_sineIndex += sineIndexInc;
+        if (m_sineIndex >= SINE_LENGTH)  m_sineIndex -= SINE_LENGTH;
+        m_buffer[i][0] = m_buffer[i][1] = volume * m_sine[int(m_sineIndex)];
     }
     m_io->write(reinterpret_cast<const char *>(m_buffer), qint64(sizeof(float) * 2) * n);
 }
@@ -84,7 +88,6 @@ void Synthesizer::generate() {
 void Synthesizer::stop() {
     qDebug() << "INFO: Synthesizer::stop()";
     if (m_audio)  m_audio->stop();
-    m_sourceFile.close();
     delete m_audio;
     m_audio = nullptr;
 }

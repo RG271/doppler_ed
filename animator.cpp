@@ -18,7 +18,7 @@ bool Animator::inside(int xc, int yc, float rc, int x, int y) {
 
 Animator::Animator() {
     // Load images
-    QString imgDir = R"(C:\Users\jm3\Documents\Keep\Business\Qt6\doppler_effect\img\)";
+    QString imgDir = R"(img\)";
     if (!m_backgroundPixmap.load(imgDir + "background_1800x800.jpg"))  qDebug() << "ERROR: Cannot load the background image";
     if (!m_ambulancePixmap.load(imgDir + "ambulance_207x112.png"))  qDebug() << "ERROR: Cannot load the ambulance image";
     if (!m_personListeningPixmap.load(imgDir + "person_listening_64x100.png"))  qDebug() << "ERROR: Cannot load the person listening image";
@@ -30,8 +30,6 @@ Animator::Animator() {
     m_circlePen[1] = QPen(Qt::blue);  m_circlePen[1].setWidth(2);
     m_circlePen[2] = QPen(Qt::blue);  m_circlePen[2].setWidth(1);
     m_circlePen[3] = QPen(Qt::blue);  m_circlePen[3].setWidth(1);  m_circlePen[3].setStyle(Qt::PenStyle::DotLine);
-    m_textPen = QPen(QColor(64, 32, 64));
-    m_textFont.setPixelSize(50);
 
     // Clear the m_circle array
     memset(m_circle, 0, sizeof m_circle);
@@ -39,7 +37,7 @@ Animator::Animator() {
     // Initialize animation's parameters
     m_ambXPosMin      = -970.0f;
     m_ambXPosMax      = 1070.0f;
-    m_ambSirenTmrTop  = 1500;
+    m_ambSirenTmrTop  = 1000;
     m_soundSpeed      = 0.10f;     // speed 0.02f and siren top 1500 gives nice dense waves
 
     // Initialize animation's state
@@ -47,7 +45,7 @@ Animator::Animator() {
     m_ambXVel         = 0.0f;
     m_ambSirenTmr     = 0;
     m_ambSirenOn      = false;
-    m_personListening = false;
+    m_t               = 0;
 }
 
 
@@ -55,47 +53,21 @@ Animator::Animator() {
 // in: painter = QPainter object with render hints already set
 //     w, h = width and height of the widget being painted
 //     dt = time in milliseconds since the last call to this method (>=0)
-void Animator::paint(QPainter *painter, int w, int h, int dt) {
-    int w2 = w >> 1,
-        h2 = h >> 1;
+//     synth = sound-effects synthesizer object
+void Animator::paint(QPainter *painter, int w, int h, int dt, Synthesizer *synth) {
+    const int w2 = w >> 1,
+              h2 = h >> 1;
 //  painter->fillRect(0, 0, w, h, m_background);    // fill client area with a solid color
     painter->drawPixmap(0, 0, m_backgroundPixmap);  // fill client area with a background image
     painter->translate(w2, h2);                     // translate; so, origin is at the client area's center
 
-/*
-    static int t = 0;
-    t = (t + dt) & 0x3FF;
-
-    painter->save();
-    painter->setBrush(circleBrush);
-    painter->setPen(circlePen);
-    painter->rotate(t * 0.030);
-    qreal r = t / 1024.0;
-    int n = 30;
-    for (int i = 0; i < n; ++i) {
-        painter->rotate(30);
-        qreal factor = (i + r) / n;
-        qreal radius = 0 + 120.0 * factor;
-        qreal circleRadius = 1 + factor * 20;
-        painter->drawEllipse(QRectF(radius, -circleRadius,
-                                    circleRadius * 2, circleRadius * 2));
-    }
-    painter->restore();
-*/
-
-/*
-    painter->setPen(textPen);
-    painter->setFont(textFont);
-    painter->drawText(QRect(-50, -50, 100, 100), Qt::AlignCenter, QStringLiteral("Qt"));
-*/
-
     // Draw the ambulance
-    m_ambXPos += m_ambXVel * dt;
-    if (m_ambXPos < m_ambXPosMin) { m_ambXPos = m_ambXPosMin;  m_ambSirenOn = false; }
-    if (m_ambXPos > m_ambXPosMax) { m_ambXPos = m_ambXPosMax;  m_ambSirenOn = false; }
-    const int xs = int(roundf(m_ambXPos)),  // X-coord. of center of ambulance's siren
-              ys = 77 + 9;                  // Y-coord. of center of ambulance's siren
-    painter->drawPixmap(xs - 142, 77, m_ambulancePixmap);
+    float ambXPos = m_ambXPos + m_ambXVel * m_t;
+    if (ambXPos < m_ambXPosMin) { ambXPos = m_ambXPosMin;  m_ambSirenOn = false; }
+    if (ambXPos > m_ambXPosMax) { ambXPos = m_ambXPosMax;  m_ambSirenOn = false; }
+    const int xs = int(roundf(ambXPos)),     // X-coord. of center of ambulance's siren
+              ys = AMBULANCE_Y + SIREN_DY;   // Y-coord. of center of ambulance's siren
+    painter->drawPixmap(xs - SIREN_DX, AMBULANCE_Y, m_ambulancePixmap);
 
     // Draw crosshairs on the ambulance's siren
     // // painter->setPen(QPen(Qt::blue));
@@ -103,11 +75,12 @@ void Animator::paint(QPainter *painter, int w, int h, int dt) {
     // // painter->drawLine(xs - 5, ys, xs + 5, ys);
 
     // Add a circle when siren pulses and ambulance is far enough away from the window's left edge
-    if (m_ambSirenOn  &&  m_ambXPos >= m_ambXPosMin + 150.0f) {
+    if (m_ambSirenOn  &&  ambXPos >= m_ambXPosMin + 150.0f) {
         m_ambSirenTmr += dt;
         if (m_ambSirenTmr >= m_ambSirenTmrTop) {
             m_ambSirenTmr -= m_ambSirenTmrTop;
             if (m_ambSirenTmr >= m_ambSirenTmrTop)  m_ambSirenTmr = 0;
+            bool success = false;
             for (int i = 0; i < MAX_CIRCLES; i++)
                 if (!m_circle[i].valid) {
                     Circle *p = m_circle + i;
@@ -115,8 +88,10 @@ void Animator::paint(QPainter *painter, int w, int h, int dt) {
                     p->r = m_soundSpeed * m_ambSirenTmr;
                     p->x = xs;
                     p->y = ys;
+                    success = true;
                     break;
                 }
+            if (!success)  qDebug() << "ERROR in Animator::paint() : Circle buffer overflowed. Increase MAX_CIRCLES to fix.";
         }
     }
     else  m_ambSirenTmr = 0;
@@ -141,10 +116,51 @@ void Animator::paint(QPainter *painter, int w, int h, int dt) {
         }
     }
 
+    // Is the person hearing the siren?
+    bool hearing = false;
+    if (m_ambSirenOn)
+        for (int i = 0; i < MAX_CIRCLES; i++) {
+            const Circle *p = m_circle + i;
+            if (p->valid && inside(p->x, p->y, p->r, PERSON_EAR_X, PERSON_EAR_Y)) { hearing = true;  break; }
+        }
+    else
+        for (int i = 0; i < MAX_CIRCLES; i++) {
+            const Circle *p = m_circle + i;
+            if (p->valid && !inside(p->x, p->y, p->r, PERSON_EAR_X, PERSON_EAR_Y)) { hearing = true;  break; }
+        }
+
     // Draw the person, who is listening to the ambulance's siren
-    constexpr int PERSON_Y = 225;
-    if (m_personListening)  painter->drawPixmap( -m_personListeningPixmap.width()/2, PERSON_Y, m_personListeningPixmap);
-    else  painter->drawPixmap( -m_personWaitingPixmap.width()/2, PERSON_Y, m_personWaitingPixmap);
+    if (hearing)  painter->drawPixmap(PERSON_X - m_personListeningPixmap.width()/2, PERSON_Y, m_personListeningPixmap);
+    else  painter->drawPixmap(PERSON_X - m_personWaitingPixmap.width()/2, PERSON_Y, m_personWaitingPixmap);
+
+    // // Draw crosshairs on the person's ear on the m_personListeningPixmap image
+    // painter->setPen(QPen(Qt::blue));
+    // painter->drawLine(PERSON_EAR_X, PERSON_EAR_Y - 5, PERSON_EAR_X, PERSON_EAR_Y + 5);
+    // painter->drawLine(PERSON_EAR_X - 5, PERSON_EAR_Y, PERSON_EAR_X + 5, PERSON_EAR_Y);
+
+    // Generate/enqueue ambulance's siren audio for dt milliseconds
+    float volume = 0.0f,
+          warp = 1.0f;
+    if (hearing) {
+        // Compute volume according to the inverse-square law, and make the volume maximum (at closest approach)
+        // be about 1.0f.  Also, compute the frequency warping factor.
+        constexpr float GAIN = (AMBULANCE_Y + SIREN_DY - PERSON_EAR_Y) * (AMBULANCE_Y + SIREN_DY - PERSON_EAR_Y),
+                        SPEED_OF_SOUND = 1.0f,              // speed of sound in pixels per millisecond (selected experimentally to sound right)
+                        ySiren = AMBULANCE_Y + SIREN_DY;    // Y-coord. of center of ambulance's siren
+        float xSiren = m_ambXPos + m_ambXVel * m_t;         // X-coord. of center of ambulance's siren
+        if (xSiren < m_ambXPosMin)  xSiren = m_ambXPosMin;
+        if (xSiren > m_ambXPosMax)  xSiren = m_ambXPosMax;
+        const float x = xSiren - PERSON_EAR_X,
+                    y = ySiren - PERSON_EAR_Y,
+                    d2 = x*x + y*y;
+        volume = GAIN / d2,
+        warp = 1.0f - (1.0f / SPEED_OF_SOUND) * m_ambXVel * x / sqrtf(d2);
+    }
+    synth->generate(volume, warp, dt);
+
+    // Update time
+    m_t += dt;
+    if (m_t > 999999)  m_t = 999999;
 }
 
 
@@ -165,35 +181,30 @@ void Animator::setState(int state) {
         m_ambXVel         = 0.0f;
         m_ambSirenTmr     = 0;
         m_ambSirenOn      = false;
-        m_personListening = false;
         break;
     case 1:
-        m_ambXPos         = m_ambXPosMin + 250.0f;
+        m_ambXPos         = m_ambXPosMin + 550.0f;
         m_ambXVel         = 0.0f;
         m_ambSirenTmr     = 0;
         m_ambSirenOn      = false;
-        m_personListening = false;
         break;
     case 2:
-        m_ambXPos         = m_ambXPosMin + 250.0f;
+        m_ambXPos         = m_ambXPosMin + 550.0f;
         m_ambXVel         = 0.0f;
         m_ambSirenTmr     = 0;
         m_ambSirenOn      = true;
-        m_personListening = true;
         break;
     case 3:
         m_ambXPos         = m_ambXPosMin;
         m_ambXVel         = 0.025f;
         m_ambSirenTmr     = 0;
         m_ambSirenOn      = true;
-        m_personListening = true;
         break;
     case 4:
         m_ambXPos         = m_ambXPosMin;
         m_ambXVel         = 0.050f;
         m_ambSirenTmr     = 0;
         m_ambSirenOn      = true;
-        m_personListening = true;
         break;
     default:
         return;
@@ -201,4 +212,7 @@ void Animator::setState(int state) {
 
     // Clear the m_circle array
     memset(m_circle, 0, sizeof m_circle);
+
+    // Reset animation time
+    m_t = 0;
 }
