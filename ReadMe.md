@@ -1,21 +1,25 @@
 # Doppler Effect Simulation
 
-by Dr. Richard D. Kaminsky &nbsp; 3/26/2025 &ndash; 4/7/2025
+by Dr. Richard D. Kaminsky &nbsp; 3/26/2025 &ndash; 4/8/2025
 
-<br/>
+Project type: C++ / Desktop Qt 6.8.3 MinGW 64-bit
 
 ## Overview
 
-This is an animation of an ambulance driving past a person with
-its siren on.  The siren is synthesized with a frequency that
-varies according to the Doppler effect.
+This is an animation of an ambulance with its siren on going past
+a person. The siren is synthesized as a pure tone (a sine wave).
+Its frequency varies according to the *Doppler effect* and volume
+varies according to the *inverse square law* (reciprocal of the
+distance squared).
 
 ## How to Deploy
 
-1. Create an empty directory
-2. Copy the application executable and img subdirectory to that directory
-3. In a command window, change to the directory
-4. Run <b>C:\Qt\6.8.3\mingw_64\bin\windeployqt <i>&lt;app&gt;</i>.exe</b>
+1. Build this project
+2. Create an empty directory
+3. From the build directory copy the executable file `doppler_ed.exe`
+   and subdirectory `img` to the empty directory
+4. In a command window, change to that directory
+5. Run `C:\Qt\6.8.3\mingw_64\bin\windeployqt doppler_ed.exe`
 
 This will add the necessary dynamic link libraries and other
 files to the directory to allow running the application.
